@@ -18,8 +18,8 @@ $Hotkeys = [ordered]@{
 # YouTube Shorts or Instagram Reels tab is visible. Otherwise they keep
 # working as normal back / forward buttons.
 # Values: "next", "prev", "toggle", or "" to leave the button alone.
-$MouseForward = "next"   # forward side button (usually the front one)
-$MouseBack    = "prev"   # back side button
+$MouseForward = "prev"   # forward side button (the upper / front one) -> scroll up
+$MouseBack    = "next"   # back side button (the lower / rear one) -> scroll down
 
 $Port = 17345   # must match PORT in feed-remote.user.js
 # ====================

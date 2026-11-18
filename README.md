@@ -26,7 +26,7 @@ The shortcuts only scroll the TikTok home feed (For You / Following), YouTube Sh
 
 ## Mouse side buttons (Windows)
 
-The `native` folder has an optional helper that turns the mouse side buttons into next / previous video, but only while a feed is the selected tab of a window that isn't minimized. The rest of the time they work as normal back / forward buttons, so you don't need mouse macros.
+The `native` folder has an optional helper that turns the mouse side buttons into next / previous video (the lower button scrolls down, the upper one scrolls up), but only while a feed is the selected tab of a window that isn't minimized. The rest of the time they work as normal back / forward buttons, so you don't need mouse macros.
 
 1. Double-click `native/install.bat`. It registers the helper for Chrome, Brave, Edge, Chromium and Vivaldi.
 2. Restart the browser. The browser starts and stops the helper by itself.
@@ -62,7 +62,7 @@ The helper runs a tiny HTTP server on `localhost:17345`, and the userscript keep
 
 The default shortcuts are the same as above. Change them in the settings block at the top of `feed-remote-helper.ps1` and restart the helper. Unlike the Chrome extension, single keys without Ctrl or Alt work too (`F13` to `F24`, `Pause`, `ScrollLock`, ...), which makes binding them to mouse buttons easier. A single key is captured everywhere, so pick one you don't use for anything else.
 
-The helper also takes over the mouse side buttons (forward = next video, back = previous video), but only while a TikTok home feed, YouTube Shorts or Instagram Reels tab is visible. The rest of the time they work as normal back / forward buttons, so you don't need mouse macros. You can change or turn this off with `$MouseForward` and `$MouseBack` in the same settings block.
+The helper also takes over the mouse side buttons (the lower button scrolls down, the upper one scrolls up), but only while a TikTok home feed, YouTube Shorts or Instagram Reels tab is visible. The rest of the time they work as normal back / forward buttons, so you don't need mouse macros. You can change or turn this off with `$MouseForward` and `$MouseBack` in the same settings block.
 
 To start the helper with Windows, press Win+R, type `shell:startup` and put a shortcut to `start.bat` in that folder.
 

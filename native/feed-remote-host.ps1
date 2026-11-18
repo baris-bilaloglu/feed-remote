@@ -4,8 +4,8 @@
 
 # ===== SETTINGS =====
 # Values: "next", "prev", "toggle", or "" to leave the button alone.
-$MouseForward = "next"   # forward side button (usually the front one)
-$MouseBack    = "prev"   # back side button
+$MouseForward = "prev"   # forward side button (the upper / front one) -> scroll up
+$MouseBack    = "next"   # back side button (the lower / rear one) -> scroll down
 # ====================
 
 $code = @"
