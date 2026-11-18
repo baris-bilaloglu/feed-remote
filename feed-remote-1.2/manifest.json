@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArvZySoqGgNPFkoiFGQV/x3+5TYsHYyAdRF6Ih5pRQdRW+ci7ttKYunrPTiEF1S7bb47enfG/uhS5x6WzNc7rcPBRqtNohkwJYz/O5fBIFhGb9tv3Gk9d0QlgjhuimlvYDrPCiMxNchD3Chrioxh0psMgEOMqWmMxmtaXvnVN7Sfio+WQ3hVV6Gm4pf/nlP5mKfyZ2xuyHavFaIt5dDUXh4hbkALxuenR5F54fqowsO8Um2o/o3EqtGKVhgjor2lPk2cTJBOeuMWbaGg8VV4GTcPTWloJ3bI0h0kh4HNOdMCMlWLUWvQO6NXbqDdpMC2z9iWeELDl0IOo8rorwNfrZQIDAQAB",
+  "name": "Feed Remote",
+  "version": "1.2.0",
+  "description": "Scroll TikTok, YouTube Shorts and Instagram Reels with global hotkeys, even while the browser is in the background.",
+  "permissions": [
+    "scripting",
+    "tabs",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "*://*.tiktok.com/*",
+    "*://*.youtube.com/*",
+    "*://*.instagram.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Feed Remote",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "next-video": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+2"
+      },
+      "description": "Next video",
+      "global": true
+    },
+    "prev-video": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+1"
+      },
+      "description": "Previous video",
+      "global": true
+    },
+    "toggle-play": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+3"
+      },
+      "description": "Play / pause",
+      "global": true
+    }
+  }
+}
