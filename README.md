@@ -64,7 +64,7 @@ The default shortcuts are the same as above. Change them in the settings block a
 
 The helper also takes over the mouse side buttons (the lower button scrolls down, the upper one scrolls up), but only while a TikTok home feed, YouTube Shorts or Instagram Reels tab is visible. The rest of the time they work as normal back / forward buttons, so you don't need mouse macros. You can change or turn this off with `$MouseForward` and `$MouseBack` in the same settings block.
 
-To start the helper with Windows, press Win+R, type `shell:startup` and put a shortcut to `start.bat` in that folder.
+To start the helper hidden with Windows, run `firefox/install-autostart.bat` once. It also starts it right away, so you don't need `start.bat` anymore. `uninstall-autostart.bat` undoes it. While it runs hidden there is no window, so if you want to see what it's doing, run `uninstall-autostart.bat` and use `start.bat` instead.
 
 Don't run the helper while a Chromium browser with the extension is open. Both try to grab the same shortcuts, and the helper window will show `FAILED`.
 

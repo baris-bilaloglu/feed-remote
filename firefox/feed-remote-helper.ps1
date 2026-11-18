@@ -27,6 +27,7 @@ $Port = 17345   # must match PORT in feed-remote.user.js
 $code = @"
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -37,7 +38,19 @@ public static class FeedRemote {
     [DllImport("user32.dll")] static extern int GetMessage(out MSG m, IntPtr h, uint a, uint b);
     [DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(int idHook, MouseProc fn, IntPtr hMod, uint threadId);
     [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] static extern bool UnhookWindowsHookEx(IntPtr hhk);
+    [DllImport("kernel32.dll")] static extern bool SetConsoleCtrlHandler(CtrlHandler h, bool add);
     [DllImport("kernel32.dll")] static extern IntPtr GetModuleHandle(string name);
+    public delegate bool CtrlHandler(int ctrlType);
+    static CtrlHandler ctrlHandler = OnClose;   // keep a reference
+
+    // Closing the window: remove the mouse hook and exit immediately.
+    // A hook left behind while the process shuts down causes heavy mouse lag.
+    static bool OnClose(int ctrlType) {
+        if (hook != IntPtr.Zero) { UnhookWindowsHookEx(hook); hook = IntPtr.Zero; }
+        Process.GetCurrentProcess().Kill();
+        return true;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam; public IntPtr lParam; public uint time; public int x; public int y; }
@@ -60,6 +73,7 @@ public static class FeedRemote {
 
     public static void Run(int port, string[] names, string[] cmds, uint[] mods, uint[] vks, string fwd, string back) {
         mouseFwd = fwd ?? ""; mouseBack = back ?? "";
+        SetConsoleCtrlHandler(ctrlHandler, true);
 
         var listener = new HttpListener();
         listener.Prefixes.Add("http://localhost:" + port + "/");

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Feed Remote
 // @namespace    feed-remote
-// @version      1.2.0
+// @version      1.2.1
 // @description  Scroll TikTok, YouTube Shorts and Instagram Reels with global hotkeys (requires feed-remote-helper.ps1)
 // @homepageURL  https://github.com/baris-bilaloglu/feed-remote
 // @downloadURL  https://raw.githubusercontent.com/baris-bilaloglu/feed-remote/main/firefox/feed-remote.user.js
@@ -13,6 +13,7 @@
 // @connect      localhost
 // @run-at       document-idle
 // @noframes
+// @inject-into  content
 // ==/UserScript==
 
 (function () {
