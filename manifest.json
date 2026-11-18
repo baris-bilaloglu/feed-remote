@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Feed Remote",
+  "version": "1.1.0",
+  "description": "Scroll TikTok, YouTube Shorts and Instagram Reels with global hotkeys, even while the browser is in the background.",
+  "permissions": ["scripting", "tabs"],
+  "host_permissions": [
+    "*://*.tiktok.com/*",
+    "*://*.youtube.com/*",
+    "*://*.instagram.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Feed Remote",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "next-video": {
+      "suggested_key": { "default": "Ctrl+Shift+2" },
+      "description": "Next video",
+      "global": true
+    },
+    "prev-video": {
+      "suggested_key": { "default": "Ctrl+Shift+1" },
+      "description": "Previous video",
+      "global": true
+    },
+    "toggle-play": {
+      "suggested_key": { "default": "Ctrl+Shift+3" },
+      "description": "Play / pause",
+      "global": true
+    }
+  }
+}
