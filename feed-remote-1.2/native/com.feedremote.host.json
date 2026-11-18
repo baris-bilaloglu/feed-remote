@@ -1,7 +1,0 @@
-{
-  "name": "com.feedremote.host",
-  "description": "Feed Remote mouse helper",
-  "path": "feed-remote-host.bat",
-  "type": "stdio",
-  "allowed_origins": ["chrome-extension://pigklloiomnglnfiagpgeecjihjaeonh/"]
-}
