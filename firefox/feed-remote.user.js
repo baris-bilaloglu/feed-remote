@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Feed Remote
 // @namespace    feed-remote
-// @version      1.1.0
+// @version      1.2.0
 // @description  Scroll TikTok, YouTube Shorts and Instagram Reels with global hotkeys (requires feed-remote-helper.ps1)
 // @homepageURL  https://github.com/baris-bilaloglu/feed-remote
 // @downloadURL  https://raw.githubusercontent.com/baris-bilaloglu/feed-remote/main/firefox/feed-remote.user.js
@@ -18,14 +18,29 @@
 (function () {
   "use strict";
   const PORT = 17345;
+  const ID = Math.random().toString(36).slice(2, 10);
   let seq = -1;
   let boot = "";
+
+  // Only the TikTok home feed, YouTube Shorts and Instagram Reels count as a feed
+  function isFeed() {
+    if (document.visibilityState !== "visible") return false;
+    const h = location.hostname;
+    const p = location.pathname;
+    if (h.includes("tiktok.com")) return p === "/" || p.startsWith("/foryou") || p.startsWith("/following");
+    if (h.includes("youtube.com")) return p.startsWith("/shorts/");
+    if (h.includes("instagram.com")) return p.startsWith("/reels") || p.startsWith("/reel/");
+    return false;
+  }
+
+  const url = (path, extra = "") =>
+    `http://localhost:${PORT}/${path}?id=${ID}&feed=${isFeed() ? 1 : 0}${extra}`;
 
   function poll() {
     GM_xmlhttpRequest({
       method: "GET",
-      url: `http://localhost:${PORT}/wait?since=${seq}&boot=${boot}`,
-      timeout: 30000,
+      url: url("wait", `&since=${seq}&boot=${boot}`),
+      timeout: 15000,
       onload: (r) => {
         try {
           const d = JSON.parse(r.responseText);
@@ -40,9 +55,23 @@
     });
   }
 
+  // Tell the helper right away when the page stops or starts being a feed,
+  // so the mouse side buttons switch back to normal back / forward.
+  let lastFeed = null;
+  function report(force) {
+    const f = isFeed();
+    if (f === lastFeed && !force) return;
+    lastFeed = f;
+    GM_xmlhttpRequest({ method: "GET", url: url("state"), timeout: 3000 });
+  }
+  setInterval(report, 1000);
+  document.addEventListener("visibilitychange", () => report(true));
+  window.addEventListener("pagehide", () =>
+    GM_xmlhttpRequest({ method: "GET", url: url("state", "&gone=1"), timeout: 1000 })
+  );
+
   function act(cmd) {
-    if (document.visibilityState !== "visible") return; // only act in the visible tab
-    if (location.hostname.includes("youtube.com") && !location.pathname.startsWith("/shorts")) return;
+    if (!isFeed()) return; // only act on a visible feed
 
     const mid = window.innerHeight / 2;
     const sized = (el) => {
@@ -94,5 +123,6 @@
     window.scrollBy({ top: dir * window.innerHeight, behavior: "smooth" });
   }
 
+  report(true);
   poll();
 })();

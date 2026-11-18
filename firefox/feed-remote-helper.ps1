@@ -1,22 +1,32 @@
 # Feed Remote helper
-# Listens for global hotkeys and passes them to the Feed Remote userscript
-# through a small local HTTP server (localhost only).
+# Listens for global hotkeys and mouse side buttons and passes them to the
+# Feed Remote userscript through a small local HTTP server (localhost only).
 
 # ===== SETTINGS =====
-# Combos:      "Ctrl+Shift+2", "Alt+F", "Ctrl+Down"
-# Single keys: "F13".."F24", "Pause", "ScrollLock", "Insert",
-#              "NumAdd", "NumSub", "NumMul", "NumDiv", "Num0".."Num9"
-# A single key is captured system-wide, so pick one you don't use elsewhere.
+# Keyboard combos:  "Ctrl+Shift+2", "Alt+F", "Ctrl+Down"
+# Single keys:      "F13".."F24", "Pause", "ScrollLock", "Insert",
+#                   "NumAdd", "NumSub", "NumMul", "NumDiv", "Num0".."Num9"
+# Use "" to disable a hotkey. Keyboard hotkeys are captured everywhere,
+# even when no feed is open, so pick keys you don't use for anything else.
 $Hotkeys = [ordered]@{
     next   = "Ctrl+Shift+2"   # next video
     prev   = "Ctrl+Shift+1"   # previous video
     toggle = "Ctrl+Shift+3"   # play / pause
 }
+
+# Mouse side buttons. They only control the feed while a TikTok home feed,
+# YouTube Shorts or Instagram Reels tab is visible. Otherwise they keep
+# working as normal back / forward buttons.
+# Values: "next", "prev", "toggle", or "" to leave the button alone.
+$MouseForward = "next"   # forward side button (usually the front one)
+$MouseBack    = "prev"   # back side button
+
 $Port = 17345   # must match PORT in feed-remote.user.js
 # ====================
 
 $code = @"
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -25,15 +35,32 @@ using System.Runtime.InteropServices;
 public static class FeedRemote {
     [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr h, int id, uint mod, uint vk);
     [DllImport("user32.dll")] static extern int GetMessage(out MSG m, IntPtr h, uint a, uint b);
+    [DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(int idHook, MouseProc fn, IntPtr hMod, uint threadId);
+    [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("kernel32.dll")] static extern IntPtr GetModuleHandle(string name);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam; public IntPtr lParam; public uint time; public int x; public int y; }
+    [StructLayout(LayoutKind.Sequential)]
+    struct MSLLHOOKSTRUCT { public int x; public int y; public uint mouseData; public uint flags; public uint time; public IntPtr extra; }
+    public delegate IntPtr MouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    class Client { public bool feed; public DateTime seen; }
 
     static readonly object L = new object();
+    static readonly Dictionary<string, Client> clients = new Dictionary<string, Client>();
     static int seq = 0;
     static string last = "";
     static string boot = Guid.NewGuid().ToString("N").Substring(0, 8);
 
-    public static void Run(int port, string[] names, uint[] mods, uint[] vks) {
+    static string mouseFwd = "", mouseBack = "";
+    static bool swallowFwd = false, swallowBack = false;
+    static MouseProc hookProc = HookProc;   // keep a reference so it isn't garbage collected
+    static IntPtr hook = IntPtr.Zero;
+
+    public static void Run(int port, string[] names, string[] cmds, uint[] mods, uint[] vks, string fwd, string back) {
+        mouseFwd = fwd ?? ""; mouseBack = back ?? "";
+
         var listener = new HttpListener();
         listener.Prefixes.Add("http://localhost:" + port + "/");
         listener.Start();
@@ -52,31 +79,79 @@ public static class FeedRemote {
             else
                 Console.WriteLine("  FAILED  " + names[i] + " (key may already be used by another program)");
         }
+
+        if (mouseFwd != "" || mouseBack != "") {
+            hook = SetWindowsHookEx(14 /* WH_MOUSE_LL */, hookProc, GetModuleHandle(null), 0);
+            Console.WriteLine(hook != IntPtr.Zero ? "  OK      mouse side buttons" : "  FAILED  mouse side buttons");
+        }
         Console.WriteLine("Ready. Closing this window stops the hotkeys.");
 
         MSG m;
         while (GetMessage(out m, IntPtr.Zero, 0, 0) > 0) {
-            if (m.message == 0x0312) {
-                string name = names[(int)m.wParam - 1];
-                lock (L) { seq++; last = name; Monitor.PulseAll(L); }
-                Console.WriteLine(DateTime.Now.ToString("HH:mm:ss") + "  -> " + name);
-            }
+            if (m.message == 0x0312) Fire(cmds[(int)m.wParam - 1]);
         }
     }
 
-    // Long-poll: the userscript asks "anything newer than seq?" and waits up to 25 s.
+    static void Fire(string cmd) {
+        lock (L) { seq++; last = cmd; Monitor.PulseAll(L); }
+        Console.WriteLine(DateTime.Now.ToString("HH:mm:ss") + "  -> " + cmd);
+    }
+
+    static bool FeedOpen() {
+        lock (L) {
+            var now = DateTime.UtcNow;
+            foreach (var c in clients.Values)
+                if (c.feed && (now - c.seen).TotalSeconds < 15) return true;
+        }
+        return false;
+    }
+
+    // Side buttons: take them over only while a feed is visible, otherwise pass them through.
+    static IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam) {
+        if (nCode >= 0) {
+            int msg = (int)wParam;
+            if (msg == 0x020B || msg == 0x020C) {   // WM_XBUTTONDOWN / WM_XBUTTONUP
+                var d = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
+                int btn = (int)(d.mouseData >> 16);  // 1 = back, 2 = forward
+                string cmd = btn == 2 ? mouseFwd : btn == 1 ? mouseBack : "";
+                if (msg == 0x020B) {
+                    if (cmd != "" && FeedOpen()) {
+                        if (btn == 2) swallowFwd = true; else swallowBack = true;
+                        Fire(cmd);
+                        return (IntPtr)1;
+                    }
+                } else {
+                    if (btn == 2 && swallowFwd) { swallowFwd = false; return (IntPtr)1; }
+                    if (btn == 1 && swallowBack) { swallowBack = false; return (IntPtr)1; }
+                }
+            }
+        }
+        return CallNextHookEx(hook, nCode, wParam, lParam);
+    }
+
+    // /state: the userscript reports whether it shows a feed.
+    // /wait:  long-poll, "anything newer than seq?", waits up to 10 s.
     static void Handle(HttpListenerContext ctx) {
         try {
-            int since;
-            int.TryParse(ctx.Request.QueryString["since"], out since);
-            string clientBoot = ctx.Request.QueryString["boot"] ?? "";
+            var q = ctx.Request.QueryString;
+            string id = q["id"] ?? "";
+            bool feed = q["feed"] == "1";
+            int since; int.TryParse(q["since"], out since);
+            string clientBoot = q["boot"] ?? "";
+            bool wait = ctx.Request.Url.AbsolutePath == "/wait";
             string cmd = "";
             int s;
             lock (L) {
-                if (clientBoot == boot) {
-                    if (seq <= since) Monitor.Wait(L, 25000);
+                if (id != "") {
+                    if (q["gone"] == "1") clients.Remove(id);
+                    else clients[id] = new Client { feed = feed, seen = DateTime.UtcNow };
+                }
+                if (wait && clientBoot == boot) {
+                    if (seq <= since) Monitor.Wait(L, 10000);
                     if (seq > since) cmd = last;
                 }
+                Client c;
+                if (id != "" && clients.TryGetValue(id, out c)) c.seen = DateTime.UtcNow;
                 s = seq;
             }
             byte[] b = Encoding.UTF8.GetBytes("{\"boot\":\"" + boot + "\",\"seq\":" + s + ",\"cmd\":\"" + cmd + "\"}");
@@ -112,10 +187,10 @@ function Convert-Hotkey([string]$s) {
 }
 
 Add-Type -TypeDefinition $code
-$names = @(); $mods = @(); $vks = @()
+$names = @(); $cmds = @(); $mods = @(); $vks = @()
 foreach ($k in $Hotkeys.Keys) {
+    if ([string]::IsNullOrWhiteSpace($Hotkeys[$k])) { continue }
     $r = Convert-Hotkey $Hotkeys[$k]
-    $names += $k; $mods += $r[0]; $vks += $r[1]
-    Write-Host ("{0,-7} = {1}" -f $k, $Hotkeys[$k])
+    $names += "$k ($($Hotkeys[$k]))"; $cmds += $k; $mods += $r[0]; $vks += $r[1]
 }
-[FeedRemote]::Run($Port, [string[]]$names, [uint32[]]$mods, [uint32[]]$vks)
+[FeedRemote]::Run($Port, [string[]]$names, [string[]]$cmds, [uint32[]]$mods, [uint32[]]$vks, $MouseForward, $MouseBack)
