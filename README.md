@@ -4,7 +4,7 @@ A browser extension for scrolling TikTok, YouTube Shorts and Instagram Reels wit
 
 ## Install
 
-Only works in Chromium-based browsers (Chrome, Brave, Edge, Opera, Vivaldi). Firefox doesn't support global extension shortcuts.
+For Chromium-based browsers (Chrome, Brave, Edge, Opera, Vivaldi). For Zen, Firefox and other Firefox-based browsers, see [Zen / Firefox](#zen--firefox) below.
 
 1. Clone the repo, or download it as a ZIP and extract it.
 2. Open `chrome://extensions` and turn on Developer mode.
@@ -33,6 +33,27 @@ If you pin the extension, its icon shows a badge after each key press:
 No badge at all means the shortcut never reached the extension, so check the scope or your macro.
 
 If nothing happens, make sure the feed tab is the selected tab in its window.
+
+## Zen / Firefox
+
+Firefox-based browsers don't support global extension shortcuts, and Zen won't permanently install unsigned extensions. So the `firefox` folder has a version in two parts:
+
+- `feed-remote-helper.ps1` listens for the hotkeys system-wide (Windows only).
+- `feed-remote.user.js` is a userscript that does the scrolling. It runs in Violentmonkey.
+
+The helper runs a tiny HTTP server on `localhost:17345`, and the userscript keeps a request open to it. Nothing leaves your machine.
+
+1. Install [Violentmonkey](https://addons.mozilla.org/firefox/addon/violentmonkey/).
+2. Open [feed-remote.user.js](https://raw.githubusercontent.com/baris-bilaloglu/feed-remote/main/firefox/feed-remote.user.js) and click Install. If Violentmonkey asks for permission to connect to `localhost`, allow it.
+3. Double-click `firefox/start.bat`. A minimized PowerShell window opens, and the hotkeys work as long as it stays open.
+
+The default shortcuts are the same as above. Change them in the settings block at the top of `feed-remote-helper.ps1` and restart the helper. Unlike the Chrome extension, single keys without Ctrl or Alt work too (`F13` to `F24`, `Pause`, `ScrollLock`, ...), which makes binding them to mouse buttons easier. A single key is captured everywhere, so pick one you don't use for anything else.
+
+To start the helper with Windows, press Win+R, type `shell:startup` and put a shortcut to `start.bat` in that folder.
+
+Don't run the helper while a Chromium browser with the extension is open. Both try to grab the same shortcuts, and the helper window will show `FAILED`.
+
+If the helper prints `-> next` but nothing scrolls, make sure the feed tab is visible and nothing is covering it. If it prints nothing, the key combo isn't reaching it.
 
 ## Privacy
 
