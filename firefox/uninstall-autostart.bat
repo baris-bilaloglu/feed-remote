@@ -1,5 +1,4 @@
 @echo off
-schtasks /end /tn "Feed Remote" >nul 2>&1
-schtasks /delete /tn "Feed Remote" /f >nul 2>&1
-echo Feed Remote helper removed from startup and stopped.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0autostart.ps1" -Remove
+echo To stop the running helper now, end "Windows PowerShell" in Task Manager or sign out.
 pause
